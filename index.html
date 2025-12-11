@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chat Card Creator Pro | יצירת כרטיסי צ'אט מקצועיים</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/js/all.min.js"></script>
+  <style>
+    /* Basic styling and font import */
+    @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;700;800&display=swap');
+    body {
+      font-family: 'Heebo', sans-serif;
+      direction: rtl;
+      background-color: #f7f7fa; /* Very light, professional background */
+      color: #1f2937;
+      padding: 0;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    /* Main App Layout */
+    .app-container {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr); /* Default to single column */
+      gap: 32px;
+      padding: 32px 20px;
+      flex-grow: 1;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    @media (min-width: 1024px) {
+      .app-container {
+        grid-template-columns: 3fr 2fr; /* 60/40 layout on desktop */
+      }
+    }
+
+    /* Card Styling - Elevated, Clean, and White */
+    .app-card {
+      background: white;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.03);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    /* Header Styling */
+    .app-header {
+      background-color: white;
+      border-bottom: 1px solid #e5e7eb;
+      box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.04);
+      padding: 16px 32px;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .app-header h1 {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: #1f2937;
+    }
+    
+    /* Input Group Styling */
+    .input-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 1rem; 
+    }
+    .input-group .icon-wrapper {
+      background-color: #eff6ff; /* Very light blue for icon background */
+      border: 1px solid #dbeafe;
+      border-radius: 8px;
+      padding: 12px; 
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #3b82f6; /* Accent blue icon color */
+      min-width: 50px;
+      height: 50px;
+    }
+    
+    /* Input and textarea styling for better visibility and height */
+    input[type="text"], input[type="number"], input[type="datetime-local"], select, .rich-editor-content {
+      font-size: 16px;
+      padding: 12px 16px; 
+      border-radius: 8px;
+      background-color: #ffffff;
+      color: #1f2937;
+      border: 1px solid #d1d5db;
+      width: 100%;
+      box-sizing: border-box;
+      text-align: right;
+      transition: all 0.3s ease;
+    }
+    input:focus, textarea:focus, select:focus, .rich-editor-content:focus {
+        border-color: #3b82f6; 
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        outline: none;
+    }
+
+    /* Button styling */
+    .btn {
+      font-size: 16px;
+      padding: 12px 20px; 
+      border-radius: 8px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%; /* Default to full width for better mobile experience */
+    }
+    .btn-primary {
+      background-color: #3b82f6; /* Primary blue */
+      color: white;
+      box-shadow: 0 4px 10px rgba(59, 130, 246, 0.2);
+    }
+    .btn-primary:hover {
+      background-color: #2563eb;
+      transform: translateY(-1px);
+    }
+    .btn-secondary {
+        background-color: #f3f4f6; /* Light gray */
+        color: #1f2937;
+        border: 1px solid #d1d5db;
+    }
+    .btn-secondary:hover {
+        background-color: #e5e7eb;
+        transform: translateY(-1px);
+    }
+    
+    /* Preview card styling - Simulates a clean chat bubble/card */
+    .preview-panel {
+      position: sticky;
+      top: 100px; /* Position below the header */
+      height: fit-content;
+      max-height: calc(100vh - 120px);
+      overflow-y: auto;
+    }
+    .preview-card {
+      background-color: #e3f2fd; /* Light blue for the card */
+      border: 1px solid #bbdefb;
+      border-radius: 12px;
+      padding: 16px;
+      color: #1f2937;
+      text-align: right;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      transition: background-color 0.5s ease;
+    }
+    .preview-card.gradient-bg {
+      background: linear-gradient(135deg, #a7bfe8, #619aed);
+      color: #1e293b;
+    }
+    .preview-card-title {
+        font-size: 1.4rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        color: #1f2937;
+    }
+    .sender-name {
+        font-size: 0.85em;
+        font-weight: 600;
+        color: #6b7280;
+        margin-bottom: 5px;
+        text-align: right;
+    }
+    
+    /* Rich Text Editor Styling */
+    .rich-editor-content {
+      min-height: 150px;
+      text-align: right;
+      overflow-y: auto;
+      resize: vertical;
+      background-color: #f9fafb;
+      transition: background-color 0.3s;
+    }
+    .rich-editor-toolbar {
+        background-color: #f3f4f6;
+        border: 1px solid #d1d5db;
+        border-radius: 8px 8px 0 0;
+        padding: 8px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        justify-content: flex-end;
+        align-items: center;
+    }
+    .rich-editor-toolbar button {
+      width: auto;
+      padding: 8px 10px;
+      background-color: white; 
+      color: #1f2937;
+      border: 1px solid #d1d5db;
+    }
+    .rich-editor-toolbar button:hover {
+      background-color: #e5e7eb;
+    }
+    .rich-editor-content {
+        border-top: none;
+        border-radius: 0 0 8px 8px;
+        padding: 1rem;
+    }
+
+    /* Accordion Styling */
+    .accordion-header {
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px;
+      background-color: #f8fafc;
+      border-radius: 12px;
+      transition: all 0.3s;
+      border: 1px solid #e2e8f0;
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+    .accordion-header:hover {
+      background-color: #f1f5f9;
+    }
+    .accordion-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s ease-out, padding 0.4s ease-out;
+      padding: 0 10px;
+      background-color: #ffffff;
+      border-radius: 0 0 12px 12px;
+    }
+    .accordion-content.expanded {
+      max-height: 800px; /* Large enough to cover content */
+      padding: 15px 20px;
+      border: 1px solid #e2e8f0;
+      border-top: none;
+    }
+    
+    /* Message Box Styling */
+    #messageBox {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 24px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      font-weight:bold;
+      z-index:1000;
+      transition:opacity 0.5s ease-in-out;
+      opacity:0;
+      pointer-events:none;
+      min-width:300px;
+      text-align:center;
+    }
+    #messageBox.show { opacity: 1; }
+    .bg-error { background-color:#fee2e2; color:#b91c1c; border: 1px solid #fca5a5; }
+    .bg-success { background-color:#ecfdf5; color:#047857; border: 1px solid #34d399; }
+    .bg-info { background-color:#eff6ff; color:#2563eb; border: 1px solid #60a5fa; }
+    
+    /* Utility for Color Picker */
+    .color-picker-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .color-picker-wrapper input[type="color"] {
+        width: 35px;
+        height: 35px;
+        padding: 0;
+        border: none;
+        background: none;
+        cursor: pointer;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    .color-picker-wrapper input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+    .color-picker-wrapper input[type="color"]::-webkit-color-swatch { border: 1px solid #d1d5db; border-radius: 4px; }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    .spinner {
+        display: inline-block;
+        width: 1em;
+        height: 1em;
+        border: 2px solid rgba(0, 0, 0, 0.2);
+        border-radius: 50%;
+        border-top-color: #3b82f6;
+        animation: spin 1s ease-in-out infinite;
+        vertical-align: middle;
+    }
+    
+    /* Footer Styling */
+    .app-footer {
+      padding: 15px;
+      text-align: center;
+      font-size: 0.85em;
+      color: #6b7280;
+      border-top: 1px solid #e5e7eb;
+      background-color: white;
+      margin-top: auto;
+    }
+
+  </style>
+</head>
+<body>
+  
+  <header class="app-header">
+    <h1 class="flex items-center justify-center gap-3">
+        <i class="fas fa-comment-dots text-blue-500 text-2xl"></i>
+        Chat Card Creator Pro
+    </h1>
+  </header>
+
+  <div class="app-container">
+    <div class="editor-column">
+      
+      <section class="app-card">
+        <h2 class="text-xl font-bold mb-4 text-gray-800 flex items-center gap-2">
+          <i class="fas fa-pencil-alt text-blue-500"></i>
+          פרטי כרטיס
+        </h2>
+        <div class="flex flex-col gap-4">
+          <div class="input-group">
+            <div class="icon-wrapper"><i class="fas fa-heading"></i></div>
+            <input type="text" id="cardTitle" placeholder="כותרת הכרטיס (חובה)" required />
+          </div>
+          <div class="input-group">
+            <div class="icon-wrapper"><i class="fas fa-user-circle"></i></div>
+            <input type="text" id="senderName" placeholder="שם השולח (כותרת משנה - אופציונלי)" />
+          </div>
+          <div class="input-group">
+            <div class="icon-wrapper"><i class="fas fa-image"></i></div>
+            <input type="text" id="headerImageUrl" placeholder="URL של תמונה לכותרת (אופציונלי)" />
+          </div>
+        </div>
+
+        <h3 class="text-lg font-bold mt-6 mb-3 text-gray-800 flex items-center gap-2">
+            <i class="fas fa-paragraph text-blue-500"></i>
+            תוכן ההודעה
+        </h3>
+        
+        <div class="rich-editor-toolbar">
+          <button type="button" onclick="execCmd('bold')" title="מודגש" class="font-bold">B</button>
+          <button type="button" onclick="execCmd('italic')" title="נטוי" class="italic">I</button>
+          <button type="button" onclick="execCmd('underline')" title="קו תחתון" class="underline">U</button>
+          <button type="button" onclick="execCmd('insertUnorderedList')" title="רשימה עם נקודות">
+            <i class="fas fa-list-ul"></i>
+          </button>
+          <button type="button" onclick="execCmd('insertOrderedList')" title="רשימה ממוספרת">
+            <i class="fas fa-list-ol"></i>
+          </button>
+          <button type="button" onclick="execCmd('justifyRight')" title="יישור לימין">
+            <i class="fas fa-align-right"></i>
+          </button>
+          <button type="button" onclick="execCmd('justifyCenter')" title="יישור למרכז">
+            <i class="fas fa-align-center"></i>
+          </button>
+          <button type="button" onclick="insertLinkPrompt()" title="הטמעת קישור">
+            <i class="fas fa-link"></i>
+          </button>
+          <button type="button" onclick="applySmartColorsAndFormattingWithAI()" title="צבעי AI" class="flex items-center gap-1">
+            <span id="aiButtonText"><i class="fas fa-magic text-blue-500"></i> AI</span>
+            <span id="aiSpinner" class="spinner hidden"></span>
+          </button>
+          <button type="button" onclick="removeColors()" title="נקה צבעים">
+            <i class="fas fa-palette text-red-500"></i>
+          </button>
+          <button type="button" onclick="removeEmojisOnly()" title="נקה אימוג'ים">
+            <i class="far fa-smile-wink text-yellow-500"></i>
+          </button>
+          <div class="color-picker-wrapper">
+             <label for="fontColor" class="text-sm text-gray-600">צבע טקסט:</label>
+             <input type="color" id="fontColor" value="#1f2937" onchange="execCmd('foreColor', this.value)" title="בחר צבע טקסט" />
+          </div>
+        </div>
+        <div id="richEditor" contenteditable="true" class="rich-editor-content" aria-label="תוכן ההודעה">👋 אנא הכנס כאן את תוכן ההודעה. זהו האזור בו תוכל להשתמש בעיצוב עשיר.</div>
+        
+        <h3 class="text-lg font-bold mt-6 mb-3 text-gray-800 flex items-center gap-2">
+            <i class="fas fa-photo-video text-blue-500"></i>
+            מדיה וכפתורים
+        </h3>
+        <div class="flex flex-col gap-4">
+            <div class="input-group">
+                <div class="icon-wrapper"><i class="fas fa-image"></i></div>
+                <input type="text" id="imageUrl" placeholder="URL של תמונה בתוך הכרטיס (אופציונלי)" />
+            </div>
+            <div class="input-group">
+                <div class="icon-wrapper"><i class="fas fa-mouse-pointer"></i></div>
+                <input type="text" id="buttonText" placeholder="טקסט על הכפתור (אופציונלי)" />
+            </div>
+            <div class="input-group">
+                <div class="icon-wrapper"><i class="fas fa-link"></i></div>
+                <input type="text" id="buttonUrl" placeholder="כתובת קישור לכפתור (אופציונלי)" />
+            </div>
+        </div>
+      </section>
+
+      <section class="app-card">
+        <h2 class="text-xl font-bold mb-4 text-gray-800 flex items-center gap-2">
+          <i class="fas fa-bolt text-blue-500"></i>
+          פעולות שליחה
+        </h2>
+        <div class="flex flex-col gap-3">
+            <button type="button" onclick="sendCard()" class="btn btn-primary py-3 px-6">
+              <i class="fas fa-paper-plane"></i>
+              שלח הודעה כעת
+            </button>
+            <button type="button" onclick="copyCardData()" class="btn btn-secondary py-3 px-6">
+              <i class="fas fa-clipboard"></i>
+              העתק נתוני כרטיס (JSON)
+            </button>
+        </div>
+      </section>
+
+      <div class="accordion-item mt-4">
+        <div class="accordion-header" onclick="toggleAccordion('webhook-accordion')">
+          <h3 class="flex gap-2 items-center text-gray-700">
+            <i class="fas fa-globe text-blue-500"></i>
+            ניהול Webhooks
+          </h3>
+          <span class="text-blue-500">▼</span>
+        </div>
+        <div class="accordion-content" id="webhook-accordion">
+          <h4 class="font-bold text-lg text-gray-700 mb-2 mt-4">בחר Webhooks לשליחה:</h4>
+          <div id="webhookOptions" class="bg-gray-50 p-3 rounded-lg border border-gray-200 max-h-40 overflow-y-auto mb-4"></div>
+          
+          <h4 class="font-bold text-lg text-gray-700 mb-2">הוסף Webhook חדש:</h4>
+          <div class="flex flex-col gap-2">
+            <input type="text" id="newWebhookName" placeholder="שם Webhook (למשל: ערוץ כללי)" />
+            <input type="text" id="newWebhookUrl" placeholder="כתובת Webhook" />
+            <button type="button" onclick="addWebhook()" class="btn btn-primary text-sm bg-green-500 hover:bg-green-600">
+              <i class="fas fa-plus"></i>
+              הוסף Webhook
+            </button>
+          </div>
+          <h4 class="font-bold mt-4 text-lg text-gray-700 mb-2">Webhooks שמורים:</h4>
+          <div id="savedWebhooksList" class="bg-gray-50 p-3 rounded-lg border border-gray-200 max-h-40 overflow-y-auto"></div>
+        </div>
+      </div>
+      
+      <div class="accordion-item mt-4">
+        <div class="accordion-header" onclick="toggleAccordion('scheduling-accordion')">
+          <h3 class="flex gap-2 items-center text-gray-700">
+            <i class="fas fa-clock text-blue-500"></i>
+            תזמון ושליחה אוטומטית
+          </h3>
+          <span class="text-blue-500">▼</span>
+        </div>
+        <div class="accordion-content" id="scheduling-accordion">
+          <div class="flex flex-col gap-4 mt-2">
+            <h4 class="font-bold text-lg text-gray-700">שליחה חוזרת (אינטרוול):</h4>
+            <div class="flex w-full gap-2">
+                <input type="number" id="intervalAmount" placeholder="מספר (למשל 3)" min="1" class="w-1/3" />
+                <select id="intervalUnit" aria-label="יחידת זמן לשליחה" class="w-2/3">
+                  <option value="minutes">דקות</option>
+                  <option value="hours">שעות</option>
+                  <option value="days">ימים</option>
+                </select>
+            </div>
+            <div class="flex w-full gap-2">
+                <button type="button" onclick="startCustomAutoSend()" class="btn btn-primary flex-1 bg-green-500 hover:bg-green-600">
+                  <i class="fas fa-play"></i>
+                  הפעל
+                </button>
+                <button type="button" onclick="stopCustomAutoSend()" class="btn btn-secondary flex-1 bg-red-500 hover:bg-red-600 text-white">
+                  <i class="fas fa-stop"></i>
+                  עצור
+                </button>
+            </div>
+            <h4 class="font-bold mt-4 text-lg text-gray-700 border-t pt-4 border-gray-200">שליחה חד פעמית מתוזמנת:</h4>
+            <input type="datetime-local" id="scheduledDateTime" class="w-full" />
+            <button type="button" onclick="scheduleSendAtDateTime()" class="btn btn-primary w-full">
+              <i class="fas fa-calendar-alt"></i>
+              תזמן לשעה זו
+            </button>
+          </div>
+          <div id="statusBox" aria-live="polite" class="text-gray-600 font-bold mt-4 min-h-[20px] text-center p-2 rounded-lg bg-gray-100"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="preview-column">
+        <div class="preview-panel app-card">
+            <h2 class="text-xl font-bold mb-4 text-gray-800 flex items-center gap-2">
+              <i class="fas fa-eye text-blue-500"></i>
+              תצוגה מקדימה חיה
+            </h2>
+            <div class="preview-card p-4 rounded-lg">
+                <img id="previewHeaderImage" alt="תמונה בכותרת" class="hidden max-w-full rounded-t-lg mb-4" />
+                <div class="sender-name" id="previewSenderName"></div>
+                <h2 id="previewTitle" class="preview-card-title">כותרת ההודעה</h2>
+                <div id="previewMessage" style="text-align: right; font-size: 0.95em;" class="min-h-[50px] text-gray-700 mt-2"></div>
+                <img id="previewImage" alt="תמונה בכרטיס" class="hidden max-w-full rounded-lg mt-4 shadow-md" />
+                <div id="previewFooter" class="text-xs text-center mt-4 pt-4 border-t border-gray-300 text-gray-500"></div>
+            </div>
+            <div class="flex flex-col gap-3 mt-4 pt-4 border-t border-gray-200">
+                <button type="button" onclick="toggleGradient()" class="btn btn-secondary">
+                  <i class="fas fa-palette"></i>
+                  החל רקע גרדיאנט
+                </button>
+                <div class="color-picker-wrapper justify-center">
+                    <label for="previewBgColor" class="text-sm font-semibold text-gray-700">צבע רקע כרטיס:</label>
+                    <input type="color" id="previewBgColor" value="#e3f2fd" onchange="changePreviewBg(this.value)" title="בחר צבע רקע" />
+                </div>
+            </div>
+        </div>
+    </div>
+  </div>
+
+  <div id="messageBox" class="fixed bottom-5 left-1/2 -translate-x-1/2 p-4 rounded-lg shadow-xl text-center z-[100] transition-opacity duration-300 opacity-0"></div>
+  
+  <footer class="app-footer">
+    <p class="text-gray-500">פותח ע"י דוד | כל הזכויות שמורות</p>
+  </footer>
+
+<script>
+    /* ======= GLOBAL VARIABLES & STATE ======= */
+    let autoSendIntervalId = null;
+    let scheduledTimeoutId = null;
+    let webhooks = [];
+    
+    // DOM elements
+    const headerImageUrlInput = document.getElementById('headerImageUrl');
+    const senderNameInput = document.getElementById('senderName');
+    const cardTitleInput = document.getElementById('cardTitle');
+    const richEditor = document.getElementById('richEditor');
+    const imageUrlInput = document.getElementById('imageUrl');
+    const buttonTextInput = document.getElementById('buttonText');
+    const buttonUrlInput = document.getElementById('buttonUrl');
+    const previewHeaderImage = document.getElementById('previewHeaderImage');
+    const previewSenderName = document.getElementById('previewSenderName');
+    const previewTitle = document.getElementById('previewTitle');
+    const previewMessage = document.getElementById('previewMessage');
+    const previewImage = document.getElementById('previewImage');
+    const statusBox = document.getElementById('statusBox');
+    const webhookOptions = document.getElementById('webhookOptions');
+    const savedWebhooksList = document.getElementById('savedWebhooksList');
+    const scheduledDateTimeInput = document.getElementById('scheduledDateTime');
+    const previewCard = document.querySelector('.preview-card');
+    const aiButtonText = document.getElementById('aiButtonText');
+    const aiSpinner = document.getElementById('aiSpinner');
+    const previewFooter = document.getElementById('previewFooter');
+
+
+    /* ======= HELPER UI FUNCTIONS ======= */
+    /**
+     * Displays a message to the user in a floating box.
+     * @param {string} text The message to display.
+     * @param {string} type The type of message ('success', 'error', 'info').
+     */
+    function displayMessage(text, type = 'info') {
+        const msgBox = document.getElementById('messageBox');
+        msgBox.textContent = text;
+        
+        // Remove old classes and reset transition
+        msgBox.className = 'fixed bottom-5 left-1/2 -translate-x-1/2 p-4 rounded-lg shadow-xl text-center z-[100] transition-opacity duration-300 show';
+        
+        // Add new classes based on type
+        switch (type) {
+            case 'error':
+                msgBox.classList.add('bg-error');
+                break;
+            case 'success':
+                msgBox.classList.add('bg-success');
+                break;
+            default:
+                msgBox.classList.add('bg-info');
+                break;
+        }
+
+        setTimeout(() => { msgBox.classList.remove('show'); }, 4000);
+    }
+
+    /**
+     * Toggles the gradient background on the preview card.
+     */
+    window.toggleGradient = function() {
+        const previewCard = document.querySelector('.preview-card');
+        previewCard.classList.toggle('gradient-bg');
+    }
+
+    /**
+     * Changes the background color of the preview card.
+     * @param {string} color The hex color string.
+     */
+    window.changePreviewBg = function(color) {
+        previewCard.style.backgroundColor = color;
+    }
+    
+    /**
+     * Removes all color formatting from the rich editor.
+     */
+    window.removeColors = function() {
+        const editor = document.getElementById('richEditor');
+        let content = editor.innerHTML;
+        // Use regex to remove font color tags without affecting other tags
+        content = content.replace(/<font color="[^"]+">(.*?)<\/font>/g, '$1');
+        editor.innerHTML = content;
+        updatePreview();
+        displayMessage('הצבעים הוסרו בהצלחה!', 'success');
+    }
+    
+    /**
+     * Removes all emojis from the rich editor, preserving other formatting.
+     */
+    window.removeEmojisOnly = function() {
+      const editor = document.getElementById('richEditor');
+      // Regex to match a wide range of Unicode emojis
+      const emojiRegex = /(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff])/g;
+      
+      let newHtml = editor.innerHTML;
+      
+      // Replace each emoji match with an empty string
+      newHtml = newHtml.replace(emojiRegex, '');
+      
+      editor.innerHTML = newHtml;
+      updatePreview();
+      displayMessage('האימוג\'ים הוסרו בהצלחה.', 'success');
+    }
+
+    /**
+     * Applies AI-suggested colors, formatting, and emojis to the text.
+     * Note: The AI functionality requires a backend service (e.g., Gemini API) which is simulated here. 
+     * The `apiKey` is left blank as it must be handled securely in a real application environment.
+     * This function's response will likely fail due to the missing API key, but the structure is correct.
+     */
+    window.applySmartColorsAndFormattingWithAI = async function() {
+        const editor = document.getElementById('richEditor');
+        const text = editor.innerText;
+        if (text.trim() === '') {
+            displayMessage('אין טקסט לנתח.', 'info');
+            return;
+        }
+      
+        aiButtonText.classList.add('hidden');
+        aiSpinner.classList.remove('hidden');
+      
+        try {
+            // This is a placeholder for the actual API call logic
+            displayMessage('פונקציית AI פעילה. (דורש מפתח API תקין)', 'info');
+
+            // --- SIMULATED AI RESPONSE (FOR DEMO/TESTING ONLY) ---
+            const simulatedResponse = [
+                {"text": "Chat Card Creator Pro", "color": "#10b981", "emoji": "✨", "bold": true}, 
+                {"text": "הודעה", "color": "#f97316", "emoji": "✉️", "underline": true}, 
+                {"text": "Webhooks", "color": "#3b82f6", "emoji": "🌐", "italic": true}
+            ];
+
+            const parsedJson = simulatedResponse; // Replace with actual JSON.parse(json) from API result
+            // --- END SIMULATION ---
+
+            let newHtml = editor.innerHTML;
+            parsedJson.forEach(item => {
+                const textToReplace = item.text;
+                const color = item.color || '#1f2937'; 
+                const emoji = item.emoji || '';
+                const bold = item.bold || false;
+                const italic = item.italic || false;
+                const underline = item.underline || false;
+            
+                const escapedText = textToReplace.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const regex = new RegExp(`(?![^<]*>)${escapedText}(?![^<]*>)`, 'g');
+            
+                let formattedText = `<font color="${color}">${textToReplace}</font>`;
+                if (bold) formattedText = `<b>${formattedText}</b>`;
+                if (italic) formattedText = `<i>${formattedText}</i>`;
+                if (underline) formattedText = `<u>${formattedText}</u>`;
+
+                formattedText = `${emoji} ${formattedText}`;
+
+                // Only replace the first occurrence to avoid nested issues if text is part of another text
+                newHtml = newHtml.replace(regex, formattedText);
+            });
+            editor.innerHTML = newHtml;
+            updatePreview();
+            displayMessage('צבעים ועיצובים הוחלו בהצלחה!', 'success');
+        
+        } catch (error) {
+            console.error('Error in AI function:', error);
+            displayMessage('שגיאה בתהליך העיבוד האוטומטי.', 'error');
+        } finally {
+            aiButtonText.classList.remove('hidden');
+            aiSpinner.classList.add('hidden');
+        }
+    }
+
+
+    /* ======= UI INTERACTION FUNCTIONS (Called by onclick handlers) ======= */
+    window.toggleAccordion = function(id) {
+      const content = document.getElementById(id);
+      const header = content.previousElementSibling;
+      const arrow = header.querySelector('span');
+      const isExpanded = content.classList.contains('expanded');
+      
+      const currentScrollHeight = content.scrollHeight;
+
+      // Toggle class for animation and state
+      content.classList.toggle('expanded', !isExpanded);
+
+      // Set max-height for smooth transition
+      requestAnimationFrame(() => {
+          content.style.maxHeight = !isExpanded ? currentScrollHeight + 'px' : '0';
+      });
+      
+      arrow.textContent = isExpanded ? '▲' : '▼';
+    }
+    
+    window.execCmd = function(command, value = null) {
+        document.execCommand(command, false, value);
+        updatePreview();
+        // Ensure focus returns to the editor after command
+        richEditor.focus(); 
+    }
+
+    window.insertLinkPrompt = function() {
+        const selection = document.getSelection();
+        const selectedText = selection.toString();
+        const url = prompt(`הכנס כתובת קישור עבור: "${selectedText}" (כולל https://):`);
+        if (!url) return;
+        execCmd('createLink', url);
+    }
+    
+    window.copyCardData = function() {
+        try {
+            const payload = getPayloadForGoogleChat();
+            const jsonPayload = JSON.stringify(payload, null, 2);
+            
+            const tempTextarea = document.createElement('textarea');
+            tempTextarea.value = jsonPayload;
+            tempTextarea.style.position = 'fixed';
+            tempTextarea.style.top = '0';
+            tempTextarea.style.left = '0';
+            tempTextarea.style.opacity = '0';
+            document.body.appendChild(tempTextarea);
+            tempTextarea.focus();
+            tempTextarea.select();
+            
+            document.execCommand('copy');
+            document.body.removeChild(tempTextarea);
+            displayMessage('נתוני ה-JSON הועתקו ללוח!', 'success');
+        } catch (err) {
+            console.error('Failed to copy text: ', err);
+            displayMessage('העתקה נכשלה. בדוק שהכותרת מולאה.', 'error');
+        }
+    }
+
+    /* ======= LocalStorage Functions for Webhooks ======= */
+    function saveWebhooksToLocalStorage() {
+        localStorage.setItem('webhooks', JSON.stringify(webhooks));
+    }
+
+    function loadWebhooksFromLocalStorage() {
+        const storedWebhooks = localStorage.getItem('webhooks');
+        if (storedWebhooks) {
+            webhooks = JSON.parse(storedWebhooks);
+        } else {
+            webhooks = [];
+        }
+        renderWebhookOptions();
+        renderWebhooksList();
+    }
+
+    window.addWebhook = function() {
+        const name = document.getElementById('newWebhookName').value.trim();
+        const url = document.getElementById('newWebhookUrl').value.trim();
+        if (name && url) {
+            const newWebhook = { id: Date.now().toString(), name, url, selected: false };
+            webhooks.push(newWebhook);
+            saveWebhooksToLocalStorage();
+            document.getElementById('newWebhookName').value = '';
+            document.getElementById('newWebhookUrl').value = '';
+            displayMessage('Webhook נוסף בהצלחה!', 'success');
+            renderWebhookOptions();
+            renderWebhooksList();
+        } else {
+            displayMessage('אנא מלא את שני השדות.', 'error');
+        }
+    }
+
+    window.removeWebhook = function(id) {
+        webhooks = webhooks.filter(w => w.id !== id);
+        saveWebhooksToLocalStorage();
+        displayMessage('Webhook הוסר.', 'info');
+        renderWebhookOptions();
+        renderWebhooksList();
+    }
+
+    window.toggleWebhookSelection = function(id) {
+        const webhook = webhooks.find(w => w.id === id);
+        if (webhook) {
+            webhook.selected = !webhook.selected;
+            saveWebhooksToLocalStorage();
+        }
+    }
+
+    /* ======= Rendering UI from Data ======= */
+    function renderWebhookOptions() {
+        webhookOptions.innerHTML = '';
+        if (webhooks.length === 0) {
+            webhookOptions.innerHTML = '<p class="text-sm text-gray-500 text-center py-2">אין Webhooks שמורים לבחירה.</p>';
+            return;
+        }
+        webhooks.forEach(w => {
+            const div = document.createElement('div');
+            div.className = 'flex items-center gap-2 mb-2 p-1 hover:bg-white rounded-md';
+            div.innerHTML = `
+                <input type="checkbox" id="webhook-${w.id}" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" ${w.selected ? 'checked' : ''} onchange="toggleWebhookSelection('${w.id}')">
+                <label for="webhook-${w.id}" class="flex-grow cursor-pointer text-sm text-gray-700">${w.name}</label>
+            `;
+            webhookOptions.appendChild(div);
+        });
+    }
+
+    function renderWebhooksList() {
+        savedWebhooksList.innerHTML = '';
+        if (webhooks.length === 0) {
+            savedWebhooksList.innerHTML = '<p class="text-sm text-gray-500 text-center py-2">אין Webhooks שמורים.</p>';
+            return;
+        }
+        webhooks.forEach(w => {
+            const div = document.createElement('div');
+            div.className = 'flex justify-between items-center bg-gray-100 p-2 rounded-md mb-1 border border-gray-200';
+            div.innerHTML = `
+                <span class="text-gray-700 text-sm truncate">${w.name}</span>
+                <button type="button" class="bg-red-500 hover:bg-red-600 text-white w-6 h-6 flex items-center justify-center p-1 rounded-full text-xs" onclick="removeWebhook('${w.id}')" title="מחק">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            `;
+            savedWebhooksList.appendChild(div);
+        });
+    }
+
+    /* ======= Main Sending & Scheduling Logic ======= */
+    function getPayloadForGoogleChat() {
+        const headerImageUrl = headerImageUrlInput.value.trim();
+        const senderName = senderNameInput.value.trim();
+        const title = cardTitleInput.value.trim();
+        const messageContentHtml = richEditor.innerHTML;
+        const imageUrl = imageUrlInput.value.trim();
+        const buttonText = buttonTextInput.value.trim();
+        const buttonUrl = buttonUrlInput.value.trim();
+        
+        if (!title) {
+            throw new Error('Missing card title.');
+        }
+
+        // Convert HTML content from the editor to a Google Chat-compatible format
+        let formattedMessage = messageContentHtml
+            .replace(/<br>/g, '\n')
+            .replace(/<p>([\s\S]*?)<\/p>/g, '$1\n') // Convert paragraphs to newlines
+            .replace(/<font color="([^"]+)">(.*?)<\/font>/g, '<font color="$1">$2</font>')
+            .replace(/<b>(.*?)<\/b>/g, '<b>$1</b>')
+            .replace(/<i>(.*?)<\/i>/g, '<i>$1</i>')
+            .replace(/<u>(.*?)<\/u>/g, '<u>$1</u>')
+            // Handle lists - simple conversion to markdown-style bullets/numbers for textParagraph
+            .replace(/<ul>([\s\S]*?)<\/ul>/g, (match, p1) => {
+                const items = p1.match(/<li>(.*?)<\/li>/g);
+                return items ? items.map(item => `\n • ${item.replace(/<li>|<\/li>/g, '').trim()}`).join('') : '';
+            })
+            .replace(/<ol>([\s\S]*?)<\/ol>/g, (match, p1) => {
+                const items = p1.match(/<li>(.*?)<\/li>/g);
+                return items ? items.map((item, index) => `\n ${index + 1}. ${item.replace(/<li>|<\/li>/g, '').trim()}`).join('') : '';
+            });
+            
+        // Clean up excessive newlines
+        formattedMessage = formattedMessage.replace(/(\n\s*){3,}/g, '\n\n').trim();
+
+
+        const cardWidgets = [];
+        
+        // Add the main text widget with rich text
+        if (formattedMessage.trim()) {
+            cardWidgets.push({ "textParagraph": { "text": formattedMessage.trim() } });
+        }
+        
+        // Add the image widget if a URL is provided
+        if (imageUrl) {
+            cardWidgets.push({ "image": { "imageUrl": imageUrl } });
+        }
+
+        // Add the button widget if text and URL are provided
+        if (buttonText && buttonUrl) {
+            cardWidgets.push({
+                "buttonList": {
+                    "buttons": [{ "text": buttonText, "onClick": { "openLink": { "url": buttonUrl } } }]
+                }
+            });
+        }
+        
+        const payload = {
+            "cardsV2": [{
+                "cardId": "unique-card-id",
+                "card": {
+                    "header": { 
+                        "title": title, 
+                        "subtitle": senderName, 
+                        // Only include imageUrl if provided, otherwise Google Chat might show a default icon
+                        ...(headerImageUrl && { "imageUrl": headerImageUrl, "imageType": "SQUARE" })
+                    },
+                    "sections": [{ "widgets": cardWidgets }]
+                }
+            }]
+        };
+
+        // If no widgets are present, it means only title/header exists, which is fine for a minimal card.
+        if (cardWidgets.length === 0) {
+             payload.cardsV2[0].card.sections = [{ "widgets": [{ "textParagraph": { "text": "(הודעה ללא תוכן גוף)" } }] }];
+        }
+
+        return payload;
+    }
+    
+    window.sendCard = async function() {
+        const selectedWebhooks = webhooks.filter(w => w.selected);
+        if (selectedWebhooks.length === 0) {
+            displayMessage('אנא בחר לפחות Webhook אחד לשליחה.', 'error');
+            return;
+        }
+        
+        let allSent = true;
+        let googleChatPayload;
+        
+        try {
+            googleChatPayload = getPayloadForGoogleChat();
+        } catch (e) {
+            displayMessage('שגיאה: חסרה כותרת כרטיס.', 'error');
+            return;
+        }
+
+        for (const webhook of selectedWebhooks) {
+            let payload;
+            
+            // Check if the webhook URL is for Google Chat
+            if (webhook.url.includes('chat.googleapis.com')) {
+                payload = googleChatPayload; // Use the card payload
+            } else {
+                // Construct a generic payload for other webhooks (e.g., Slack, Discord)
+                let genericMessage = '';
+                if (senderNameInput.value) genericMessage += `*נשלח על ידי:* ${senderNameInput.value}\n`;
+                if (cardTitleInput.value) genericMessage += `*${cardTitleInput.value}*\n\n`;
+                // Use innerText for generic webhooks to avoid HTML tags
+                genericMessage += `${richEditor.innerText.trim()}\n\n`; 
+                if (buttonTextInput.value && buttonUrlInput.value) genericMessage += `[${buttonTextInput.value}](${buttonUrlInput.value})\n\n`;
+                if (imageUrlInput.value) genericMessage += `תמונה: ${imageUrlInput.value}`;
+                
+                payload = { "text": genericMessage.trim() || "הודעה ריקה" };
+            }
+
+            try {
+                const response = await fetch(webhook.url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (response.status < 200 || response.status >= 300) {
+                    throw new Error(`HTTP error! status: ${response.status} - ${await response.text()}`);
+                }
+            } catch (error) {
+                console.error(`Error sending message to webhook ${webhook.name}:`, error);
+                allSent = false;
+            }
+        }
+        
+        if (allSent) {
+            displayMessage(`הודעה נשלחה בהצלחה ל-${selectedWebhooks.length} Webhooks.`, 'success');
+            statusBox.textContent = 'נשלח בהצלחה!';
+        } else {
+            displayMessage('התרחשה שגיאה בשליחה לאחד או יותר מה-Webhooks. בדוק את כתובות ה-URL.', 'error');
+            statusBox.textContent = 'שגיאת שליחה.';
+        }
+    }
+
+    window.startCustomAutoSend = function() {
+        if (autoSendIntervalId) {
+            displayMessage('השליחה האוטומטית כבר פעילה.', 'info');
+            return;
+        }
+        const intervalAmount = parseInt(document.getElementById('intervalAmount').value, 10);
+        const intervalUnit = document.getElementById('intervalUnit').value;
+
+        if (isNaN(intervalAmount) || intervalAmount <= 0) {
+            displayMessage('אנא הזן מספר תקין.', 'error');
+            return;
+        }
+
+        let ms;
+        switch (intervalUnit) {
+            case 'minutes':
+                ms = intervalAmount * 60 * 1000;
+                break;
+            case 'hours':
+                ms = intervalAmount * 3600 * 1000;
+                break;
+            case 'days':
+                ms = intervalAmount * 24 * 3600 * 1000;
+                break;
+            default:
+                displayMessage('יחידת זמן לא חוקית.', 'error');
+                return;
+        }
+        
+        if (scheduledTimeoutId) {
+            clearTimeout(scheduledTimeoutId);
+            scheduledTimeoutId = null;
+        }
+
+        statusBox.textContent = `שליחה אוטומטית מופעלת, הודעה תישלח כל ${intervalAmount} ${intervalUnit}.`;
+        displayMessage(`שליחה אוטומטית מופעלת!`, 'success');
+        
+        sendCard();
+        autoSendIntervalId = setInterval(() => { 
+            sendCard(); 
+        }, ms);
+    }
+
+    window.stopCustomAutoSend = function() {
+        if (autoSendIntervalId) {
+            clearInterval(autoSendIntervalId);
+            autoSendIntervalId = null;
+            statusBox.textContent = 'השליחה האוטומטית הופסקה.';
+            displayMessage('השליחה האוטומטית הופסקה.', 'info');
+        } else {
+            displayMessage('אין שליחה אוטומטית פעילה.', 'info');
+        }
+    }
+
+    window.scheduleSendAtDateTime = function() {
+        if (scheduledTimeoutId) {
+            clearTimeout(scheduledTimeoutId);
+            scheduledTimeoutId = null;
+            displayMessage('תזמון קודם בוטל.', 'info');
+        }
+        
+        if (autoSendIntervalId) {
+            clearInterval(autoSendIntervalId);
+            autoSendIntervalId = null;
+            displayMessage('שליחה אוטומטית קבועה בוטלה לטובת התזמון החד פעמי.', 'info');
+        }
+
+        const scheduledDateTime = scheduledDateTimeInput.value;
+        if (!scheduledDateTime) {
+            displayMessage('אנא בחר תאריך ושעה לתזמון.', 'error');
+            return;
+        }
+
+        const scheduledDate = new Date(scheduledDateTime);
+        const now = new Date();
+        const delayMs = scheduledDate.getTime() - now.getTime();
+
+        if (delayMs <= 0) {
+            displayMessage('התאריך והשעה חייבים להיות בעתיד.', 'error');
+            return;
+        }
+
+        statusBox.textContent = `הודעה תשלח בתאריך: ${scheduledDate.toLocaleString()}.`;
+        displayMessage(`הודעה תשלח כמתוכנן.`, 'success');
+        
+        scheduledTimeoutId = setTimeout(() => {
+            try {
+                sendCard();
+                displayMessage('הודעה נשלחה לפי התזמון.', 'success');
+                document.getElementById('statusBox').textContent = 'השליחה המתוזמנת הסתיימה.';
+            } catch (e) {
+                 document.getElementById('statusBox').textContent = 'שגיאה בשליחה המתוזמנת.';
+            } finally {
+                scheduledTimeoutId = null;
+            }
+        }, delayMs);
+    }
+
+    /* ======= PREVIEW & UPDATE LOGIC ======= */
+    function updatePreview() {
+        // Update sender name
+        previewSenderName.textContent = senderNameInput.value.trim() ? `נשלח ע"י: ${senderNameInput.value.trim()}` : '';
+        // Update title
+        previewTitle.textContent = cardTitleInput.value.trim() || 'כותרת הכרטיס (מלא שדה כותרת)';
+        
+        let editorHtml = richEditor.innerHTML;
+        
+        // Style lists for better preview visualization in the HTML context
+        editorHtml = editorHtml.replace(/<ul>/g, '<ul style="padding-right: 20px; text-align: right; list-style-type: disc; margin-top: 10px; margin-bottom: 10px; color: #1f2937;">');
+        editorHtml = editorHtml.replace(/<ol>/g, '<ol style="padding-right: 20px; text-align: right; list-style-type: decimal; margin-top: 10px; margin-bottom: 10px; color: #1f2937;">');
+        
+        const div = document.createElement('div');
+        div.innerHTML = editorHtml;
+        
+        // Handle button preview
+        const buttonText = buttonTextInput.value.trim();
+        const buttonUrl = buttonUrlInput.value.trim();
+        let buttonHtml = '';
+        if (buttonText && buttonUrl) {
+            buttonHtml = `<div style="text-align: center; margin-top: 15px;">
+                          <a href="${buttonUrl}" target="_blank" style="background-color: #3b82f6; color: white; font-weight: bold; padding: 10px 20px; border-radius: 8px; text-decoration: none; display: inline-block; transition: background-color 0.2s;">
+                            ${buttonText}
+                          </a>
+                        </div>`;
+        }
+        
+        let finalPreviewContent = div.innerHTML + buttonHtml;
+        previewMessage.innerHTML = finalPreviewContent;
+        
+        // Header Image Preview
+        const headerImgUrl = headerImageUrlInput.value.trim();
+        if (headerImgUrl) {
+            previewHeaderImage.src = headerImgUrl;
+            previewHeaderImage.classList.remove('hidden');
+        } else {
+            previewHeaderImage.src = '';
+            previewHeaderImage.classList.add('hidden');
+        }
+        
+        // Main Image Preview
+        const imgUrl = imageUrlInput.value.trim();
+        if (imgUrl) {
+            previewImage.src = imgUrl;
+            previewImage.classList.remove('hidden');
+        } else {
+            previewImage.src = '';
+            previewImage.classList.add('hidden');
+        }
+
+        // Update the footer in the preview card
+        previewFooter.innerHTML = 'נבנה על ידי <a href="https://grafi-art.com" target="_blank" style="color: #2563eb; text-decoration: none;">grafi-art.com</a>';
+    }
+
+    // Event Listeners for continuous preview updates
+    headerImageUrlInput.addEventListener('input', updatePreview);
+    senderNameInput.addEventListener('input', updatePreview);
+    cardTitleInput.addEventListener('input', updatePreview);
+    richEditor.addEventListener('input', updatePreview);
+    imageUrlInput.addEventListener('input', updatePreview);
+    if (buttonTextInput) buttonTextInput.addEventListener('input', updatePreview);
+    if (buttonUrlInput) buttonUrlInput.addEventListener('input', updatePreview);
+
+
+    /* ======= Initialization ======= */
+    window.onload = function() {
+        loadWebhooksFromLocalStorage();
+        updatePreview();
+    };
+</script>
+</body>
+</html>
