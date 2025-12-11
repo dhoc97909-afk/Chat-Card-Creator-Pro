@@ -103,6 +103,7 @@
       padding: 12px 16px; 
       border-radius: 8px;
       font-weight: 700;
+      cursor: pointer;
       transition: all 0.2s ease;
       display: flex;
       align-items: center;
@@ -206,6 +207,7 @@
         display: none; /* Initially hidden */
         opacity: 0;
         transition: opacity 0.3s ease-in-out;
+        flex-wrap: wrap; /* Added for responsiveness */
     }
     #floatingToolbar.active {
         display: flex;
@@ -252,14 +254,44 @@
         margin-bottom: 6px;
         border: 1px solid #e2e8f0;
     }
+    
+    /* Button List Styling in Settings */
+    .button-item {
+        background-color: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 10px;
+        margin-bottom: 8px;
+    }
 
-    /* Hide the ugly accordion for a cleaner look, use <details> instead */
     details summary {
         list-style: none;
     }
     details summary::-webkit-details-marker {
         display: none;
     }
+    
+    /* Message Box Styling */
+    #messageBox {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 24px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      font-weight:bold;
+      z-index:1000;
+      transition:opacity 0.5s ease-in-out;
+      opacity:0;
+      pointer-events:none;
+      min-width:300px;
+      text-align:center;
+    }
+    #messageBox.show { opacity: 1; pointer-events: auto; }
+    .bg-error { background-color:#fee2e2; color:#b91c1c; border: 1px solid #fca5a5; }
+    .bg-success { background-color:#ecfdf5; color:#047857; border: 1px solid #34d399; }
+    .bg-info { background-color:#eff6ff; color:#2563eb; border: 1px solid #60a5fa; }
   </style>
 </head>
 <body>
@@ -326,7 +358,7 @@
                 
                 <img id="previewImage" alt="תמונה בכרטיס" class="hidden max-w-full rounded-lg mt-4 shadow-md" />
                 
-                <div id="previewButton" class="text-center mt-4"></div>
+                <div id="previewButtonList" class="flex flex-col gap-2 mt-4"></div>
             </div>
         </div>
 
@@ -361,10 +393,25 @@
             </h2>
             
             <div class="settings-group">
-                <h3 class="font-bold text-gray-700 mb-2 flex items-center gap-2"><i class="fas fa-image text-blue-400"></i> תמונה וכפתורים</h3>
+                <h3 class="font-bold text-gray-700 mb-2 flex items-center gap-2"><i class="fas fa-image text-blue-400"></i> תמונה בתוך כרטיס</h3>
                 <input type="text" id="imageUrl" placeholder="URL של תמונה בתוך הכרטיס" oninput="updatePreview()" class="mb-2" />
-                <input type="text" id="buttonText" placeholder="טקסט על הכפתור" oninput="updatePreview()" class="mb-2" />
-                <input type="text" id="buttonUrl" placeholder="כתובת קישור לכפתור" oninput="updatePreview()" />
+            </div>
+
+            <div class="settings-group">
+                <h3 class="font-bold text-gray-700 mb-2 flex items-center gap-2"><i class="fas fa-mouse-pointer text-blue-400"></i> כפתורי פעולה (Action Buttons)</h3>
+                
+                <div id="buttonListContainer" class="max-h-40 overflow-y-auto mb-3 border p-2 rounded-lg">
+                    <p id="noButtonsMessage" class="text-sm text-gray-500 text-center">אין כפתורים מוגדרים.</p>
+                </div>
+
+                <div class="flex flex-col gap-2">
+                    <input type="text" id="newButtonText" placeholder="טקסט על הכפתור החדש" />
+                    <input type="text" id="newButtonUrl" placeholder="כתובת קישור לכפתור החדש" />
+                    <button type="button" onclick="addButton()" class="btn btn-primary text-sm bg-blue-500 hover:bg-blue-600">
+                        <i class="fas fa-plus"></i>
+                        הוסף כפתור
+                    </button>
+                </div>
             </div>
 
             <div class="settings-group">
@@ -426,16 +473,12 @@
     let autoSendIntervalId = null;
     let scheduledTimeoutId = null;
     let webhooks = [];
+    let cardButtons = []; // NEW: Array to store multiple buttons
     
     // External "Virtual" Inputs (used by the logic for consistency)
-    // These hold the values of the inline contenteditable fields.
     const virtualInputs = {
         cardTitleInput: "כותרת ההודעה המרכזית",
         senderNameInput: "הודעה חדשה",
-        headerImageUrlInput: "",
-        imageUrlInput: "",
-        buttonTextInput: "",
-        buttonUrlInput: "",
     };
 
     // DOM elements
@@ -444,7 +487,7 @@
     const previewSenderName = document.getElementById('previewSenderName');
     const previewTitle = document.getElementById('previewTitle');
     const previewImage = document.getElementById('previewImage');
-    const previewButton = document.getElementById('previewButton');
+    const previewButtonList = document.getElementById('previewButtonList'); // Renamed
     const statusBox = document.getElementById('statusBox');
     const webhookOptions = document.getElementById('webhookOptions');
     const previewCard = document.querySelector('.preview-card');
@@ -452,52 +495,26 @@
     const aiButtonText = document.getElementById('aiButtonText');
     const aiSpinner = document.getElementById('aiSpinner');
     const headerImageUrlInput = document.getElementById('headerImageUrl');
-    const buttonTextInput = document.getElementById('buttonText');
-    const buttonUrlInput = document.getElementById('buttonUrl');
     const imageUrlInput = document.getElementById('imageUrl');
+    const newButtonText = document.getElementById('newButtonText');
+    const newButtonUrl = document.getElementById('newButtonUrl');
+    const buttonListContainer = document.getElementById('buttonListContainer');
 
 
     /* ======= UI INTERACTION FUNCTIONS ======= */
     
     /**
-     * Updates the global virtual input state based on the inline editor's content.
+     * Fix 1: Displays a message to the user in a floating box and hides it after 4 seconds.
      */
-    window.updateExternalInput = function(element, inputName) {
-        virtualInputs[inputName] = element.textContent.trim();
-        updatePreview(); // Trigger full preview update
-    }
-
-    /**
-     * Handles focus for the main rich editor to show the contextual toolbar.
-     */
-    window.handleEditorFocus = function(isFocused) {
-        if (isFocused) {
-            floatingToolbar.classList.add('active');
-        }
-    }
-    
-    /**
-     * Handles focus out for the entire card to hide the toolbar if necessary.
-     */
-    window.handleCardFocusOut = function(event) {
-        // Check if the focus target is outside the rich editor and outside the toolbar
-        if (!richEditor.contains(event.relatedTarget) && !floatingToolbar.contains(event.relatedTarget)) {
-            setTimeout(() => { // Small delay for toolbar button clicks to register
-                if (document.activeElement !== richEditor && !floatingToolbar.contains(document.activeElement)) {
-                     floatingToolbar.classList.remove('active');
-                }
-            }, 150);
-        }
-    }
-    
-    /**
-     * Displays a message to the user in a floating box.
-     */
+    let messageTimeout;
     function displayMessage(text, type = 'info') {
         const msgBox = document.getElementById('messageBox');
-        msgBox.textContent = text;
         
-        msgBox.className = 'fixed bottom-5 left-1/2 -translate-x-1/2 p-4 rounded-lg shadow-xl text-center z-[100] transition-opacity duration-300 show';
+        // Clear previous timeout and reset classes
+        clearTimeout(messageTimeout);
+        msgBox.className = 'fixed bottom-5 left-1/2 -translate-x-1/2 p-4 rounded-lg shadow-xl text-center z-[100] transition-opacity duration-300';
+
+        msgBox.textContent = text;
         
         switch (type) {
             case 'error':
@@ -510,19 +527,41 @@
                 msgBox.classList.add('bg-info');
                 break;
         }
+        
+        // Show the box
+        msgBox.classList.add('show');
 
-        setTimeout(() => { msgBox.classList.remove('show'); }, 4000);
+        // Set timeout to hide the box
+        messageTimeout = setTimeout(() => { 
+            msgBox.classList.remove('show'); 
+        }, 4000);
+    }
+    
+    window.updateExternalInput = function(element, inputName) {
+        virtualInputs[inputName] = element.textContent.trim();
+        updatePreview();
     }
 
-    /**
-     * Rich Text Command Execution
-     */
+    window.handleEditorFocus = function(isFocused) {
+        if (isFocused) {
+            floatingToolbar.classList.add('active');
+        }
+    }
+    
+    window.handleCardFocusOut = function(event) {
+        if (!richEditor.contains(event.relatedTarget) && !floatingToolbar.contains(event.relatedTarget)) {
+            setTimeout(() => {
+                if (document.activeElement !== richEditor && !floatingToolbar.contains(document.activeElement)) {
+                     floatingToolbar.classList.remove('active');
+                }
+            }, 150);
+        }
+    }
+    
     window.execCmd = function(command, value = null) {
-        // Ensure the editor is focused before executing command (for non-rich text commands)
         if (command !== 'foreColor') richEditor.focus();
         document.execCommand(command, false, value);
         updatePreview();
-        // Keep focus on editor after command if it was focused initially
         if (document.activeElement !== floatingToolbar) richEditor.focus(); 
     }
 
@@ -543,6 +582,7 @@
         previewCard.style.backgroundColor = color;
     }
     
+    // AI function remains the same (simulated)
     window.applySmartColorsAndFormattingWithAI = async function() {
         const text = richEditor.innerText;
         if (text.trim() === '') {
@@ -553,7 +593,6 @@
         aiButtonText.classList.add('hidden');
         aiSpinner.classList.remove('hidden');
         
-        // --- SIMULATED AI RESPONSE (for demo/testing only) ---
         const simulatedResponse = [
             {"text": "Chat Card Creator Pro", "color": "#10b981", "emoji": "✅", "bold": true}, 
             {"text": "הודעה", "color": "#3b82f6", "emoji": "🌐", "italic": true}
@@ -561,11 +600,11 @@
 
         try {
             await new Promise(resolve => setTimeout(resolve, 800));
-
             const parsedJson = simulatedResponse; 
 
             let newHtml = richEditor.innerHTML;
             parsedJson.forEach(item => {
+                // ... formatting logic ...
                 const textToReplace = item.text;
                 const color = item.color || '#1f2937'; 
                 const emoji = item.emoji || '';
@@ -596,8 +635,72 @@
         }
     }
 
+    /* ======= Button Management Functions (NEW) ======= */
+    function saveButtonsToLocalStorage() {
+        localStorage.setItem('cardButtons', JSON.stringify(cardButtons));
+    }
 
-    /* ======= LocalStorage Functions for Webhooks ======= */
+    function loadButtonsFromLocalStorage() {
+        const storedButtons = localStorage.getItem('cardButtons');
+        if (storedButtons) {
+            cardButtons = JSON.parse(storedButtons);
+        } else {
+            cardButtons = [];
+        }
+        renderButtonsList();
+    }
+
+    window.addButton = function() {
+        const text = newButtonText.value.trim();
+        const url = newButtonUrl.value.trim();
+        if (text && url) {
+            const newButton = { id: Date.now().toString(), text, url };
+            cardButtons.push(newButton);
+            saveButtonsToLocalStorage();
+            newButtonText.value = '';
+            newButtonUrl.value = '';
+            displayMessage('כפתור נוסף בהצלחה.', 'success');
+            renderButtonsList();
+            updatePreview();
+        } else {
+            displayMessage('אנא מלא טקסט וקישור לכפתור.', 'error');
+        }
+    }
+
+    window.removeButton = function(id) {
+        cardButtons = cardButtons.filter(b => b.id !== id);
+        saveButtonsToLocalStorage();
+        displayMessage('כפתור הוסר.', 'info');
+        renderButtonsList();
+        updatePreview();
+    }
+    
+    function renderButtonsList() {
+        buttonListContainer.innerHTML = '';
+        if (cardButtons.length === 0) {
+            document.getElementById('noButtonsMessage').classList.remove('hidden');
+            return;
+        }
+        document.getElementById('noButtonsMessage').classList.add('hidden');
+
+        cardButtons.forEach(b => {
+            const div = document.createElement('div');
+            div.className = 'button-item flex items-center justify-between text-sm';
+            div.innerHTML = `
+                <div class="truncate">
+                    <span class="font-bold text-gray-800">${b.text}</span>
+                    <span class="text-xs text-gray-500 block">${b.url}</span>
+                </div>
+                <button type="button" class="text-red-500 hover:text-red-700 p-1" onclick="removeButton('${b.id}')" title="מחק">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            `;
+            buttonListContainer.appendChild(div);
+        });
+    }
+
+
+    /* ======= Webhooks Management Functions (Same as v4) ======= */
     function saveWebhooksToLocalStorage() {
         localStorage.setItem('webhooks', JSON.stringify(webhooks));
     }
@@ -643,7 +746,6 @@
         }
     }
 
-    /* ======= Rendering UI from Data ======= */
     function renderWebhookOptions() {
         webhookOptions.innerHTML = '';
         if (webhooks.length === 0) {
@@ -666,15 +768,13 @@
         });
     }
 
-    /* ======= Core Payload & Sending Logic ======= */
+    /* ======= Core Payload & Sending Logic (Updated for multiple buttons) ======= */
     function getPayloadForGoogleChat() {
         const headerImageUrl = headerImageUrlInput.value.trim();
         const senderName = previewSenderName.textContent.trim();
         const title = previewTitle.textContent.trim();
         const messageContentHtml = richEditor.innerHTML;
         const imageUrl = imageUrlInput.value.trim();
-        const buttonText = buttonTextInput.value.trim();
-        const buttonUrl = buttonUrlInput.value.trim();
         
         if (!title) {
             throw new Error('Missing card title.');
@@ -708,11 +808,20 @@
         if (imageUrl) {
             cardWidgets.push({ "image": { "imageUrl": imageUrl } });
         }
+        
+        // NEW: Build the list of buttons from cardButtons array
+        const chatButtons = cardButtons
+            .filter(b => b.text && b.url)
+            .map(b => ({
+                "text": b.text,
+                "onClick": { "openLink": { "url": b.url } }
+            }));
 
-        if (buttonText && buttonUrl) {
+
+        if (chatButtons.length > 0) {
             cardWidgets.push({
                 "buttonList": {
-                    "buttons": [{ "text": buttonText, "onClick": { "openLink": { "url": buttonUrl } } }]
+                    "buttons": chatButtons
                 }
             });
         }
@@ -762,7 +871,12 @@
                 if (previewSenderName.textContent) genericMessage += `*נשלח על ידי:* ${previewSenderName.textContent}\n`;
                 if (previewTitle.textContent) genericMessage += `*${previewTitle.textContent}*\n\n`;
                 genericMessage += `${richEditor.innerText.trim()}\n\n`; 
-                if (buttonTextInput.value && buttonUrlInput.value) genericMessage += `[${buttonTextInput.value}](${buttonUrlInput.value})\n\n`;
+                
+                // Add buttons to generic message
+                cardButtons.forEach(b => {
+                    genericMessage += `[${b.text}](${b.url})\n`;
+                });
+                
                 if (imageUrlInput.value) genericMessage += `תמונה: ${imageUrlInput.value}`;
                 
                 payload = { "text": genericMessage.trim() || "הודעה ריקה" };
@@ -817,8 +931,8 @@
         }
     }
     
-    // --- Scheduling functions (Same logic as v3, now using better inputs) ---
-    window.startCustomAutoSend = function() { /* ... implementation ... */ 
+    // Scheduling functions (unchanged)
+    window.startCustomAutoSend = function() { 
         if (autoSendIntervalId) {
             displayMessage('השליחה האוטומטית כבר פעילה.', 'info');
             return;
@@ -846,7 +960,7 @@
         autoSendIntervalId = setInterval(() => { sendCard(); }, ms);
     }
     
-    window.stopCustomAutoSend = function() { /* ... implementation ... */ 
+    window.stopCustomAutoSend = function() { 
         if (autoSendIntervalId) {
             clearInterval(autoSendIntervalId);
             autoSendIntervalId = null;
@@ -857,7 +971,7 @@
         }
     }
 
-    window.scheduleSendAtDateTime = function() { /* ... implementation ... */ 
+    window.scheduleSendAtDateTime = function() { 
         if (scheduledTimeoutId) {
             clearTimeout(scheduledTimeoutId);
             scheduledTimeoutId = null;
@@ -913,7 +1027,7 @@
         }
         
         // --- 2. Main Text Content ---
-        // Contenteditable elements update themselves, no need to set innerHTML here
+        // Contenteditable elements update themselves
         
         // --- 3. Image in Body ---
         const imgUrl = imageUrlInput.value.trim();
@@ -925,36 +1039,35 @@
             previewImage.classList.add('hidden');
         }
 
-        // --- 4. Button in Body ---
-        const buttonText = buttonTextInput.value.trim();
-        const buttonUrl = buttonUrlInput.value.trim();
-        let buttonHtml = '';
-        if (buttonText && buttonUrl) {
-            buttonHtml = `<a href="${buttonUrl}" target="_blank" style="background-color: #3b82f6; color: white; font-weight: bold; padding: 10px 20px; border-radius: 8px; text-decoration: none; display: inline-block; transition: background-color 0.2s;">
-                            ${buttonText}
-                          </a>`;
-            previewButton.classList.remove('hidden');
+        // --- 4. Button List in Body (Updated for multiple buttons) ---
+        previewButtonList.innerHTML = '';
+        if (cardButtons.length > 0) {
+            cardButtons.forEach(b => {
+                const buttonDiv = document.createElement('div');
+                buttonDiv.className = 'text-center w-full';
+                buttonDiv.innerHTML = `<a href="${b.url}" target="_blank" style="background-color: #3b82f6; color: white; font-weight: bold; padding: 10px 20px; border-radius: 8px; text-decoration: none; display: inline-block; transition: background-color 0.2s; margin: 4px;">${b.text}</a>`;
+                previewButtonList.appendChild(buttonDiv);
+            });
+            previewButtonList.classList.remove('hidden');
         } else {
-            previewButton.classList.add('hidden');
+            previewButtonList.classList.add('hidden');
         }
-        previewButton.innerHTML = buttonHtml;
     }
 
 
     /* ======= Initialization ======= */
     window.onload = function() {
         loadWebhooksFromLocalStorage();
+        loadButtonsFromLocalStorage(); // NEW
         updatePreview();
         
-        // Set initial content for inline editors from virtual inputs (for placeholder logic to work)
-        previewSenderName.textContent = virtualInputs.senderNameInput;
-        previewTitle.textContent = virtualInputs.cardTitleInput;
+        // Set initial content for inline editors
+        if (previewSenderName) previewSenderName.textContent = virtualInputs.senderNameInput;
+        if (previewTitle) previewTitle.textContent = virtualInputs.cardTitleInput;
         
         // Add event listeners for non-inline inputs
-        headerImageUrlInput.addEventListener('input', updatePreview);
-        imageUrlInput.addEventListener('input', updatePreview);
-        buttonTextInput.addEventListener('input', updatePreview);
-        buttonUrlInput.addEventListener('input', updatePreview);
+        if (headerImageUrlInput) headerImageUrlInput.addEventListener('input', updatePreview);
+        if (imageUrlInput) imageUrlInput.addEventListener('input', updatePreview);
     };
 </script>
 </body>
